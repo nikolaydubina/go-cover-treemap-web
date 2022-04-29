@@ -7,7 +7,10 @@ TODO
 - render SVG
 - make go cover treemap into pkg
 - nice UI and animations
-- config options
+- windowsize of SVG proportions
+- slider for details (resolution)
+- download button
+- examples buttons
 
 Reference
 * https://jsfiddle.net/jimschubert/DqcUg/
