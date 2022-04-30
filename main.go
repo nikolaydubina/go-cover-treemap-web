@@ -91,7 +91,6 @@ func (r *Renderer) OnDragOver(_ js.Value, _ []js.Value) interface{} {
 func (r *Renderer) OnDragEnd(_ js.Value, _ []js.Value) interface{} {
 	document := js.Global().Get("document")
 	document.Call("getElementById", "file-input").Set("className", "")
-	document.Call("getElementById", "details-slider-input-container").Get("style").Set("display", "")
 	r.OnWindowResize(js.Value{}, nil)
 	return false
 }
@@ -159,6 +158,7 @@ func (r *Renderer) Render() {
 	document := js.Global().Get("document")
 	document.Call("getElementById", "output-container").Set("innerHTML", string(img))
 	document.Call("getElementById", "file-input").Get("style").Set("display", "none")
+	document.Call("getElementById", "details-slider-input-container").Get("style").Set("display", "")
 }
 
 func main() {
@@ -182,7 +182,6 @@ func main() {
 	document.Call("getElementById", "example-gin").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/gin.cover")))
 	document.Call("getElementById", "example-hugo").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/hugo.cover")))
 
-	document.Call("getElementById", "details-slider-input-container").Get("style").Set("display", "none")
 	document.Call("getElementById", "details-slider-input").Set("oninput", js.FuncOf(renderer.OnDetailsSliderInputChange))
 
 	js.Global().Set("onresize", js.FuncOf(renderer.OnWindowResize))
