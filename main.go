@@ -36,10 +36,6 @@ func (r *Renderer) OnWindowResize(this js.Value, args []js.Value) interface{} {
 	w := windowWidth
 	h := windowHeight - (outputContainer.Get("offsetTop").Int() - fileInput.Get("offsetHeight").Int())
 
-	if h <= 4 {
-		return false
-	}
-
 	r.w = float64(w)
 	r.h = float64(h)
 

@@ -3,9 +3,9 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Make code coverage treemap from Go coverprofile.">
+    <meta name="description" content="Make code coverage treemap from Go coverprofile. Built with Go and WASM.">
 
-    <title>Go Cover Heatmap</title>
+    <title>Go Cover Treemap</title>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bungee+Shade">
     
@@ -18,13 +18,20 @@
         #file-input {
             border: 10px dashed #cfcfcf;
             border-radius: 6px;
-            width:  300px; 
-            height: 300px; 
+            width:  360px; 
+            height: 256px; 
             margin: 20px auto; 
+            text-align: center;
         } 
         
         #file-input.file-input-hover { 
             border: 10px dashed #69a6e7;
+        }
+
+        #file-input-description {
+            margin-top: 64px;
+            color: grey;
+            line-height: 2;
         }
 
         .header-container {
@@ -38,6 +45,11 @@
 
         #description {
             color: grey;
+        }
+
+        .code {
+            background-color: rgba(27,31,35,0.05);
+            border-radius: 3px;
         }
     </style>
 
@@ -68,7 +80,15 @@
                 <a class="github-button" href="https://github.com/nikolaydubina/go-cover-treemap" data-icon="octicon-star" data-size="small" data-show-count="true" aria-label="Star nikolaydubina/go-cover-treemap on GitHub">Star</a>
             </div>
         </div>
-        <div id="file-input"></div>
+        <div id="file-input">
+            <div id="file-input-description">
+                <i>Drop your coverprofile here</i>
+                <br>
+                <code class="code">go test -coverprofile cover.out ./...</code>
+                <br>
+                <i>or load example</i>
+            </div>
+        </div>
     </div>
     <div id="output-container" style="width: 100%;"></div>
 </body>
