@@ -45,6 +45,13 @@ func (r *Renderer) OnWindowResize(this js.Value, args []js.Value) interface{} {
 	return false
 }
 
+func (r *Renderer) OnDetailsSliderInputChange(this js.Value, args []js.Value) interface{} {
+	document := js.Global().Get("document")
+	v := document.Call("getElementById", "details-slider-input").Get("value")
+	log.Println(v)
+	return false
+}
+
 func (r *Renderer) OnFileDrop(this js.Value, args []js.Value) interface{} {
 	event := args[0]
 	event.Call("preventDefault")
@@ -159,6 +166,8 @@ func main() {
 	document.Call("getElementById", "example-chi").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/chi.cover")))
 	document.Call("getElementById", "example-gin").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/gin.cover")))
 	document.Call("getElementById", "example-hugo").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/hugo.cover")))
+
+	document.Call("getElementById", "details-slider-input").Set("onchange", js.FuncOf(renderer.OnDetailsSliderInputChange))
 
 	js.Global().Set("onresize", js.FuncOf(renderer.OnWindowResize))
 

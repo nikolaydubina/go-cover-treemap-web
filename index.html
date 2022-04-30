@@ -57,6 +57,10 @@
             text-decoration: underline;
             cursor: pointer;
         }
+
+        .details-slider-input-container {
+            width: 200px;
+        }
     </style>
 
     <script async defer src="https://buttons.github.io/buttons.js"></script>
@@ -84,6 +88,9 @@
             <p id="description"><i>Generate treemap for Go cover profiles. Works offline. Nothing is uploaded.</i></p>
             <div id="button-row">
                 <a class="github-button" href="https://github.com/nikolaydubina/go-cover-treemap" data-icon="octicon-star" data-size="small" data-show-count="true" aria-label="Star nikolaydubina/go-cover-treemap on GitHub">Star</a>
+            </div>
+            <div class="details-slider-input-container">
+                <input type="range" min="1" max="100" value="20" class="slider" id="details-slider-input">
             </div>
         </div>
         <div id="file-input">
