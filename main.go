@@ -3,7 +3,9 @@ package main
 import (
 	_ "embed"
 	"image/color"
+	"io"
 	"log"
+	"net/http"
 	"strings"
 	"syscall/js"
 
@@ -73,6 +75,29 @@ func (r *Renderer) OnDragEnd(this js.Value, args []js.Value) interface{} {
 	return false
 }
 
+func (r *Renderer) NewOnClickExample(examplePath string) func(this js.Value, args []js.Value) interface{} {
+	return func(this js.Value, args []js.Value) interface{} {
+		go func() {
+			resp, err := http.Get(examplePath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer resp.Body.Close()
+
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			r.fileText = string(b)
+
+			r.OnDragEnd(js.Value{}, nil)
+			r.Render()
+		}()
+		return false
+	}
+}
+
 func (r *Renderer) Render() {
 	if r.fileText == "" {
 		return
@@ -130,6 +155,10 @@ func main() {
 	fileInput.Set("ondragend", js.FuncOf(renderer.OnDragEnd))
 	fileInput.Set("ondragleave", js.FuncOf(renderer.OnDragEnd))
 	fileInput.Set("ondrop", js.FuncOf(renderer.OnFileDrop))
+
+	document.Call("getElementById", "example-chi").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/chi.cover")))
+	document.Call("getElementById", "example-gin").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/gin.cover")))
+	document.Call("getElementById", "example-hugo").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/hugo.cover")))
 
 	js.Global().Set("onresize", js.FuncOf(renderer.OnWindowResize))
 
