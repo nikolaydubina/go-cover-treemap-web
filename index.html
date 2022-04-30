@@ -58,7 +58,11 @@
             cursor: pointer;
         }
 
-        .details-slider-input-container {
+        #details-slider-input-container {
+            width: 100%;
+        }
+        
+        #details-slider-input {
             width: 200px;
         }
     </style>
@@ -89,8 +93,8 @@
             <div id="button-row">
                 <a class="github-button" href="https://github.com/nikolaydubina/go-cover-treemap" data-icon="octicon-star" data-size="small" data-show-count="true" aria-label="Star nikolaydubina/go-cover-treemap on GitHub">Star</a>
             </div>
-            <div class="details-slider-input-container">
-                <input type="range" min="1" max="100" value="20" class="slider" id="details-slider-input">
+            <div id="details-slider-input-container">
+                <input type="range" min="20" max="300" value="100" class="slider" id="details-slider-input">
             </div>
         </div>
         <div id="file-input">
@@ -100,9 +104,9 @@
                 <code class="code">go test -coverprofile cover.out ./...</code>
                 <br>
                 <i>or load example</i>
+                <a id="example-hugo" class="example-file-link">hugo</a>
                 <a id="example-chi" class="example-file-link">chi</a>
                 <a id="example-gin" class="example-file-link">gin</a>
-                <a id="example-hugo" class="example-file-link">hugo</a>
             </div>
         </div>
     </div>

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"syscall/js"
 
@@ -19,15 +20,16 @@ import (
 var grey = color.RGBA{128, 128, 128, 255}
 
 type Renderer struct {
-	w          float64 // svg width
-	h          float64 // svg height
+	w          float64 // SVG width
+	h          float64 // SVG height
 	marginBox  float64
 	paddingBox float64
 	padding    float64
 	fileText   string
+	scale      int // this is how many % we multiply width and height of SVG
 }
 
-func (r *Renderer) OnWindowResize(this js.Value, args []js.Value) interface{} {
+func (r *Renderer) OnWindowResize(_ js.Value, _ []js.Value) interface{} {
 	windowWidth := js.Global().Get("innerWidth").Int()
 	windowHeight := js.Global().Get("innerHeight").Int()
 
@@ -38,21 +40,31 @@ func (r *Renderer) OnWindowResize(this js.Value, args []js.Value) interface{} {
 	w := windowWidth
 	h := windowHeight - (outputContainer.Get("offsetTop").Int() - fileInput.Get("offsetHeight").Int())
 
-	r.w = float64(w)
-	r.h = float64(h)
+	var f float64 = 1
+	if r.scale > 0 {
+		f = float64(r.scale) / 100
+	}
+	r.w = float64(w) * f
+	r.h = float64(h) * f
 
 	r.Render()
 	return false
 }
 
-func (r *Renderer) OnDetailsSliderInputChange(this js.Value, args []js.Value) interface{} {
+func (r *Renderer) OnDetailsSliderInputChange(_ js.Value, _ []js.Value) interface{} {
 	document := js.Global().Get("document")
-	v := document.Call("getElementById", "details-slider-input").Get("value")
-	log.Println(v)
+	s := document.Call("getElementById", "details-slider-input").Get("value").String()
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.scale = v
+	r.OnWindowResize(js.Value{}, nil)
+	r.Render()
 	return false
 }
 
-func (r *Renderer) OnFileDrop(this js.Value, args []js.Value) interface{} {
+func (r *Renderer) OnFileDrop(_ js.Value, args []js.Value) interface{} {
 	event := args[0]
 	event.Call("preventDefault")
 
@@ -70,20 +82,22 @@ func (r *Renderer) OnFileDrop(this js.Value, args []js.Value) interface{} {
 	return false
 }
 
-func (r *Renderer) OnDragOver(this js.Value, args []js.Value) interface{} {
+func (r *Renderer) OnDragOver(_ js.Value, _ []js.Value) interface{} {
 	document := js.Global().Get("document")
 	document.Call("getElementById", "file-input").Set("className", "file-input-hover")
 	return false
 }
 
-func (r *Renderer) OnDragEnd(this js.Value, args []js.Value) interface{} {
+func (r *Renderer) OnDragEnd(_ js.Value, _ []js.Value) interface{} {
 	document := js.Global().Get("document")
 	document.Call("getElementById", "file-input").Set("className", "")
+	document.Call("getElementById", "details-slider-input-container").Get("style").Set("display", "")
+	r.OnWindowResize(js.Value{}, nil)
 	return false
 }
 
 func (r *Renderer) NewOnClickExample(examplePath string) func(this js.Value, args []js.Value) interface{} {
-	return func(this js.Value, args []js.Value) interface{} {
+	return func(_ js.Value, _ []js.Value) interface{} {
 		go func() {
 			resp, err := http.Get(examplePath)
 			if err != nil {
@@ -148,6 +162,7 @@ func (r *Renderer) Render() {
 }
 
 func main() {
+	// oh, hey hi!!! 👋🏻
 	c := make(chan bool)
 	renderer := Renderer{
 		marginBox:  4,
@@ -167,7 +182,8 @@ func main() {
 	document.Call("getElementById", "example-gin").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/gin.cover")))
 	document.Call("getElementById", "example-hugo").Set("onclick", js.FuncOf(renderer.NewOnClickExample("/examples/hugo.cover")))
 
-	document.Call("getElementById", "details-slider-input").Set("onchange", js.FuncOf(renderer.OnDetailsSliderInputChange))
+	document.Call("getElementById", "details-slider-input-container").Get("style").Set("display", "none")
+	document.Call("getElementById", "details-slider-input").Set("oninput", js.FuncOf(renderer.OnDetailsSliderInputChange))
 
 	js.Global().Set("onresize", js.FuncOf(renderer.OnWindowResize))
 
