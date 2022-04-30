@@ -1,155 +1,143 @@
 package main
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
+	_ "embed"
 	"image/color"
 	"log"
+	"strings"
 	"syscall/js"
-	"time"
 
-	_ "embed"
+	"golang.org/x/tools/cover"
 
-	"github.com/nikolaydubina/calendarheatmap/charts"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
+	"github.com/nikolaydubina/go-cover-treemap/covertreemap"
+	"github.com/nikolaydubina/treemap"
+	"github.com/nikolaydubina/treemap/render"
 )
 
+var grey = color.RGBA{128, 128, 128, 255}
+
 type Renderer struct {
-	config charts.HeatmapConfig
-	img    []byte
+	w          float64 // svg width
+	h          float64 // svg height
+	marginBox  float64
+	paddingBox float64
+	padding    float64
+	fileText   string
 }
 
-func (r *Renderer) PrettifyJSON(this js.Value, inputs []js.Value) interface{} {
-	document := js.Global().Get("document")
-	instr := document.Call("getElementById", "inputData").Get("value")
-	data := map[string]interface{}{}
-	if err := json.Unmarshal([]byte(instr.String()), &data); err == nil {
-		if out, err := json.MarshalIndent(data, "", "    "); err == nil {
-			document.Call("getElementById", "inputData").Set("value", string(out))
-		}
-	}
-	return nil
-}
+func (r *Renderer) OnWindowResize(this js.Value, args []js.Value) interface{} {
+	windowWidth := js.Global().Get("innerWidth").Int()
+	windowHeight := js.Global().Get("innerHeight").Int()
 
-func (r *Renderer) OnDataChange(this js.Value, inputs []js.Value) interface{} {
 	document := js.Global().Get("document")
-	instr := document.Call("getElementById", "inputData").Get("value")
+	outputContainer := document.Call("getElementById", "output-container")
+	fileInput := document.Call("getElementById", "file-input")
 
-	data := map[string]int{}
-	if err := json.Unmarshal([]byte(instr.String()), &data); err == nil {
-		r.config.Counts = data
-		r.Render()
+	w := windowWidth
+	h := windowHeight - (outputContainer.Get("offsetTop").Int() - fileInput.Get("offsetHeight").Int())
+
+	if h <= 4 {
+		return false
 	}
 
-	return nil
+	r.w = float64(w)
+	r.h = float64(h)
+
+	r.Render()
+	return false
 }
 
-func (r *Renderer) GetFormatUpdater(format string) func(this js.Value, inputs []js.Value) interface{} {
-	return func(this js.Value, inputs []js.Value) interface{} {
-		r.config.Format = format
+func (r *Renderer) OnFileDrop(this js.Value, args []js.Value) interface{} {
+	event := args[0]
+	event.Call("preventDefault")
+
+	fileReader := js.Global().Get("FileReader").New()
+	fileReader.Set("onload", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		r.fileText = e.Get("target").Get("result").String()
 		r.Render()
 		return nil
-	}
+	}))
+
+	file := event.Get("dataTransfer").Get("files").Index(0)
+	fileReader.Call("readAsText", file)
+
+	return false
 }
 
-func (r *Renderer) GetWeekdaySwitchUpdater(weekday time.Weekday) func(this js.Value, inputs []js.Value) interface{} {
-	return func(this js.Value, inputs []js.Value) interface{} {
-		r.config.ShowWeekdays[weekday] = !r.config.ShowWeekdays[weekday]
-		r.Render()
-		return nil
-	}
+func (r *Renderer) OnDragOver(this js.Value, args []js.Value) interface{} {
+	document := js.Global().Get("document")
+	document.Call("getElementById", "file-input").Set("className", "file-input-hover")
+	return false
 }
 
-func (r *Renderer) ToggleLabels(this js.Value, inputs []js.Value) interface{} {
-	r.config.DrawLabels = !r.config.DrawLabels
-	r.Render()
-	return nil
-}
-
-func (r *Renderer) ToggleMonthSeparator(this js.Value, inputs []js.Value) interface{} {
-	r.config.DrawMonthSeparator = !r.config.DrawMonthSeparator
-	r.Render()
-	return nil
+func (r *Renderer) OnDragEnd(this js.Value, args []js.Value) interface{} {
+	document := js.Global().Get("document")
+	document.Call("getElementById", "file-input").Set("className", "")
+	return false
 }
 
 func (r *Renderer) Render() {
-	var output bytes.Buffer
-	if err := charts.WriteHeatmap(r.config, &output); err != nil {
-		log.Println(err)
+	if r.fileText == "" {
 		return
 	}
 
-	if r.config.Format == "svg" {
-		img := output.String()
-		js.Global().Get("document").Call("getElementById", "output-container").Set("innerHTML", img)
-	} else {
-		img := js.Global().Get("document").Call("createElement", "img")
-		src := fmt.Sprintf("data:image/%s;base64,%s", r.config.Format, base64.StdEncoding.EncodeToString(output.Bytes()))
-		img.Set("src", src)
-		img.Set("style", "width: 100%;")
-
-		container := js.Global().Get("document").Call("getElementById", "output-container")
-		container.Set("innerHTML", "")
-		container.Call("appendChild", img)
+	profiles, err := cover.ParseProfilesFromReader(strings.NewReader(r.fileText))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	// download file update button
-	src := fmt.Sprintf("data:image/%s;base64,%s", r.config.Format, base64.StdEncoding.EncodeToString(output.Bytes()))
-	link := js.Global().Get("document").Call("getElementById", "downloadLink")
-	link.Set("href", src)
-	link.Set("download", fmt.Sprintf("calendar-heatmap.%s", r.config.Format))
+	treemapBuilder := covertreemap.NewCoverageTreemapBuilder(true)
+	tree, err := treemapBuilder.CoverageTreemapFromProfiles(profiles)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sizeImputer := treemap.SumSizeImputer{EmptyLeafSize: 1}
+	sizeImputer.ImputeSize(*tree)
+	treemap.SetNamesFromPaths(tree)
+	treemap.CollapseLongPaths(tree)
+
+	heatImputer := treemap.WeightedHeatImputer{EmptyLeafHeat: 0.5}
+	heatImputer.ImputeHeat(*tree)
+
+	palette, ok := render.GetPalette("RdYlGn")
+	if !ok {
+		log.Fatalf("can not get palette")
+	}
+	uiBuilder := render.UITreeMapBuilder{
+		Colorer:     render.HeatColorer{Palette: palette},
+		BorderColor: grey,
+	}
+	spec := uiBuilder.NewUITreeMap(*tree, r.w, r.h, r.marginBox, r.paddingBox, r.padding)
+	renderer := render.SVGRenderer{}
+
+	img := renderer.Render(spec, r.w, r.h)
+
+	document := js.Global().Get("document")
+	document.Call("getElementById", "output-container").Set("innerHTML", string(img))
+	document.Call("getElementById", "file-input").Get("style").Set("display", "none")
 }
 
 func main() {
 	c := make(chan bool)
-
-	colorscale, _ := charts.NewBasicColorscaleFromCSV(bytes.NewBuffer(defaultColorScaleBytes))
-	fontFace, _ := charts.LoadFontFace(defaultFontFaceBytes, opentype.FaceOptions{
-		Size:    13,
-		DPI:     80,
-		Hinting: font.HintingNone,
-	})
 	renderer := Renderer{
-		config: charts.HeatmapConfig{
-			Counts:              nil,
-			ColorScale:          colorscale,
-			DrawMonthSeparator:  true,
-			DrawLabels:          true,
-			Margin:              5,
-			BoxSize:             24,
-			MonthSeparatorWidth: 1,
-			MonthLabelYOffset:   5,
-			TextWidthLeft:       40,
-			TextHeightTop:       15,
-			TextColor:           color.RGBA{100, 100, 100, 255},
-			BorderColor:         color.RGBA{200, 200, 200, 255},
-			Locale:              "en_US",
-			Format:              "svg",
-			FontFace:            fontFace,
-			ShowWeekdays: map[time.Weekday]bool{
-				time.Monday:    true,
-				time.Wednesday: true,
-				time.Friday:    true,
-			},
-		},
+		marginBox:  4,
+		paddingBox: 4,
+		padding:    16,
 	}
 
 	document := js.Global().Get("document")
+	fileInput := document.Call("getElementById", "file-input")
 
-	document.Call("getElementById", "inputConfig").Call("reset")
+	fileInput.Set("ondragover", js.FuncOf(renderer.OnDragOver))
+	fileInput.Set("ondragend", js.FuncOf(renderer.OnDragEnd))
+	fileInput.Set("ondragleave", js.FuncOf(renderer.OnDragEnd))
+	fileInput.Set("ondrop", js.FuncOf(renderer.OnFileDrop))
 
-	document.Call("getElementById", "inputData").Set("onkeyup", js.FuncOf(renderer.OnDataChange))
-	document.Call("getElementById", "btnPrettifyJSON").Set("onclick", js.FuncOf(renderer.PrettifyJSON))
+	js.Global().Set("onresize", js.FuncOf(renderer.OnWindowResize))
 
-	document.Call("getElementById", "switchLabels").Set("onchange", js.FuncOf(renderer.ToggleLabels))
-	document.Call("getElementById", "switchMonthSeparator").Set("onchange", js.FuncOf(renderer.ToggleMonthSeparator))
-
-	renderer.OnDataChange(js.Value{}, nil)
-	renderer.PrettifyJSON(js.Value{}, nil)
-	renderer.Render()
+	renderer.OnWindowResize(js.Value{}, nil)
 
 	<-c
 }
