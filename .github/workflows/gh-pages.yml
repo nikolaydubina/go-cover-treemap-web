@@ -28,7 +28,7 @@ jobs:
       run: make build
 
     - name: Update GitHub Pages branch
-      uses: JamesIves/github-pages-deploy-action@4.1.4
+      uses: JamesIves/github-pages-deploy-action@4.1.6
       with:
         branch: gh-pages
         folder: .
