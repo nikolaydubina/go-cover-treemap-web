@@ -1,0 +1,8 @@
+github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
+github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
+github.com/nikolaydubina/go-cover-treemap v1.2.0 h1:4ZeCDddG2PnVYuHFfyfQ5DcIvnT3vb6B8UmvB8QaQsI=
+github.com/nikolaydubina/go-cover-treemap v1.2.0/go.mod h1:pRGZbIP4d0JHyj9+ElZW9xL1wegAsE2lN9XyoTr5hfI=
+github.com/nikolaydubina/treemap v1.2.0 h1:ThpX3MQO853ihcOUkRExaqSIt/HQ+yU60kyVTu84Nfs=
+github.com/nikolaydubina/treemap v1.2.0/go.mod h1:8+wLGh917AyeJqBN1D5KM26tv6W/XfvsY+nfJd04/u8=
+golang.org/x/tools v0.1.10 h1:QjFRCZxdOhBJ/UNgnBZLbNV13DlbnK0quyivTnXJM20=
+golang.org/x/tools v0.1.10/go.mod h1:Uh6Zz+xoGYZom868N8YTex3t7RhtHDBrE8Gzo9bV56E=
