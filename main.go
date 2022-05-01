@@ -27,6 +27,7 @@ type Renderer struct {
 	padding    float64
 	fileText   string
 	scale      int // this is how many % we multiply width and height of SVG
+	hEpsilon   int // used to avoid scroll bar
 }
 
 func (r *Renderer) OnWindowResize(_ js.Value, _ []js.Value) interface{} {
@@ -38,7 +39,7 @@ func (r *Renderer) OnWindowResize(_ js.Value, _ []js.Value) interface{} {
 	fileInput := document.Call("getElementById", "file-input")
 
 	w := windowWidth
-	h := windowHeight - (outputContainer.Get("offsetTop").Int() - fileInput.Get("offsetHeight").Int())
+	h := windowHeight - (outputContainer.Get("offsetTop").Int() - fileInput.Get("offsetHeight").Int()) - r.hEpsilon
 
 	var f float64 = 1
 	if r.scale > 0 {
@@ -168,6 +169,7 @@ func main() {
 		marginBox:  4,
 		paddingBox: 4,
 		padding:    16,
+		hEpsilon:   8,
 	}
 
 	document := js.Global().Get("document")
