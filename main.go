@@ -2,6 +2,8 @@ package main
 
 import (
 	_ "embed"
+	"encoding/base64"
+	"fmt"
 	"image/color"
 	"io"
 	"log"
@@ -160,6 +162,11 @@ func (r *Renderer) Render() {
 	document.Call("getElementById", "output-container").Set("innerHTML", string(img))
 	document.Call("getElementById", "file-input").Get("style").Set("display", "none")
 	document.Call("getElementById", "details-slider-input-container").Get("style").Set("display", "")
+
+	src := fmt.Sprintf("data:image/svg;base64,%s", base64.StdEncoding.EncodeToString(img))
+	downloadButton := document.Call("getElementById", "download-button")
+	downloadButton.Set("href", src)
+	downloadButton.Set("download", fmt.Sprintf("coverprofile-treemap.svg"))
 }
 
 func main() {
@@ -169,7 +176,7 @@ func main() {
 		marginBox:  4,
 		paddingBox: 4,
 		padding:    16,
-		hEpsilon:   8,
+		hEpsilon:   16,
 	}
 
 	document := js.Global().Get("document")
